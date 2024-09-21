@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solana Token Launchpad</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create Solana Token</h1>
+        <label for="decimals">Decimals:</label>
+        <input type="number" id="decimals" placeholder="Enter number of decimals" value="9">
+        
+        <label for="freezeAuthority">Freeze Authority (optional):</label>
+        <input type="text" id="freezeAuthority" placeholder="Enter freeze authority public key">
+        
+        <button id="createTokenButton">Create Token</button>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <!-- Include Solana Web3.js and SPL Token libraries -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/cjs/index.min.js"></script>
+    <script>
+        window.onload = () => {
+            // Check if libraries are loaded correctly
+            if (typeof solanaWeb3 === 'undefined' || typeof splToken === 'undefined') {
+                console.error("Solana Web3.js or SPL Token library not loaded.");
+                document.getElementById('result').innerText = "Error: Required libraries are not loaded.";
+                return;
+            }
+
+            // Attach event listener to the button
+            document.getElementById('createTokenButton').onclick = createToken;
+        };
+
+        async function createToken() {
+            // Access the libraries
+            const { Connection, Keypair, PublicKey } = solanaWeb3;
+            const { Token } = splToken;
+
+            // Check if Token is defined
+            if (!Token) {
+                document.getElementById('result').innerText = "Error: SPL Token library not available";
+                return;
+            }
+
+            // Setup connection to Solana Devnet
+            const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+
+            // Generate keypair for payer (you should securely manage this in a real application)
+            const payer = Keypair.generate();
+
+            // Get user input
+            const decimals = parseInt(document.getElementById('decimals').value);
+            const freezeAuthorityInput = document.getElementById('freezeAuthority').value;
+            const freezeAuthority = freezeAuthorityInput ? new PublicKey(freezeAuthorityInput) : payer.publicKey;
+
+            try {
+                // Create the token mint
+                const mint = await Token.createMint(
+                    connection,
+                    payer,                  // Payer
+                    payer.publicKey,        // Mint authority
+                    freezeAuthority,        // Freeze authority
+                    decimals,               // Decimals
+                    Token.TOKEN_PROGRAM_ID  // Token program ID
+                );
+
+                // Display the result
+                document.getElementById('result').innerText = `Mint address: ${mint.publicKey.toBase58()}`;
+            } catch (error) {
+                document.getElementById('result').innerText = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
